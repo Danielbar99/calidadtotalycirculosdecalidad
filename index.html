@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calidad Total y Círculos de Calidad</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul: #1a3a6b;
+    --azul-medio: #2a5298;
+    --azul-claro: #4a7fd4;
+    --azul-suave: #d6e4f7;
+    --oro: #c9a84c;
+    --texto: #1a1a2e;
+    --texto-sec: #4a5568;
+    --blanco: #ffffff;
+    --gris-suave: #f4f7fb;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: #000;
+    color: var(--texto);
+  }
+
+  /* ── SLIDE CONTAINER ── */
+  #slider {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 10vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    scrollbar-width: none;
+  }
+  .slide::-webkit-scrollbar { display: none; }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+    z-index: 2;
+  }
+
+  /* Scrollable slides — contenido largo se puede ver con rueda dentro del slide activo */
+  .slide.active { overflow-y: auto; }
+
+  /* ── SLIDE BACKGROUNDS ── */
+  .slide-blanco { background: var(--blanco); }
+  .slide-gris   { background: var(--gris-suave); }
+  .slide-azul-suave { background: var(--azul-suave); }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--azul), var(--azul-claro));
+    width: 0%;
+    z-index: 1000;
+    transition: width .3s;
+  }
+
+  /* ── NAV DOTS ── */
+  #nav-dots {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 999;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #c0cfe8;
+    cursor: pointer;
+    transition: all .3s;
+    border: 2px solid transparent;
+  }
+  .dot.active {
+    background: var(--azul);
+    transform: scale(1.3);
+    border-color: var(--azul-suave);
+  }
+
+  /* ── ARROW CONTROLS ── */
+  .nav-arrow {
+    position: fixed;
+    bottom: 28px;
+    z-index: 999;
+    background: rgba(26,58,107,.15);
+    border: 1px solid rgba(26,58,107,.25);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background .2s;
+    color: var(--azul);
+  }
+  .nav-arrow:hover { background: rgba(26,58,107,.3); }
+  #btn-prev { left: calc(50% - 52px); }
+  #btn-next { left: calc(50% + 8px); }
+  #slide-counter {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: .78rem;
+    color: rgba(26,58,107,.5);
+    letter-spacing: .1em;
+    z-index: 999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ── PORTADA ── */
+  #portada {
+    background: var(--azul);
+    color: var(--blanco);
+    text-align: center;
+    align-items: center;
+    gap: 22px;
+  }
+  #portada::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.08);
+    top: -200px; right: -200px;
+    pointer-events: none;
+  }
+  #portada::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.06);
+    bottom: -150px; left: -100px;
+    pointer-events: none;
+  }
+  .portada-eyebrow {
+    font-size: .95rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.6);
+    font-weight: 300;
+  }
+  .portada-titulo {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.6rem, 5.5vw, 4.6rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--blanco);
+  }
+  .portada-titulo span { color: var(--oro); }
+  .portada-subtitulo {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,.75);
+    max-width: 600px;
+    line-height: 1.7;
+  }
+  .portada-linea { width: 80px; height: 3px; background: var(--oro); }
+  .portada-chips {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: center; margin-top: 8px;
+  }
+  .chip {
+    font-size: .85rem;
+    padding: 6px 18px;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 50px;
+    color: rgba(255,255,255,.85);
+    letter-spacing: .05em;
+  }
+
+  /* ── TIPOGRAFÍA GENERAL ── */
+  .seccion-label {
+    font-size: .78rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--azul-medio);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .titulo-slide {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.9rem);
+    font-weight: 700;
+    color: var(--azul);
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .subtitulo-slide {
+    font-size: 1rem;
+    color: var(--texto-sec);
+    max-width: 680px;
+    line-height: 1.75;
+    margin-bottom: 28px;
+  }
+  .linea-azul {
+    width: 60px; height: 3px;
+    background: var(--azul-medio);
+    margin-bottom: 24px;
+  }
+
+  /* ── TABLA EVOLUCIÓN ── */
+  .tabla-evolucion { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .tabla-evolucion thead tr { background: var(--azul); color: var(--blanco); }
+  .tabla-evolucion th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: .88rem;
+    letter-spacing: .04em;
+  }
+  .tabla-evolucion td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #dde9f7;
+    color: var(--texto-sec);
+    font-size: .9rem;
+    line-height: 1.4;
+  }
+  .tabla-evolucion tr:last-child td { background: #edf3fc; color: var(--azul); font-weight: 600; }
+  .tabla-evolucion tr:hover td { background: #f0f7ff; }
+
+  /* ── CARDS ── */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--blanco);
+    border: 1px solid #dde9f7;
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform .3s, box-shadow .3s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(26,58,107,.1); }
+  .card-icono {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--azul);
+    color: var(--blanco);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: .95rem;
+    margin-bottom: 12px;
+  }
+  .card-titulo { font-size: 1rem; font-weight: 600; color: var(--azul); margin-bottom: 7px; }
+  .card-texto { font-size: .88rem; color: var(--texto-sec); line-height: 1.6; }
+  .card-accent { border-left: 4px solid var(--azul-medio); }
+  .card-oro { border-left: 4px solid var(--oro); }
+
+  /* ── PRINCIPIOS ── */
+  .principio {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid #e8edf7;
+  }
+  .principio:last-child { border-bottom: none; }
+  .num-circulo {
+    width: 32px; height: 32px; min-width: 32px;
+    border-radius: 50%;
+    background: var(--azul);
+    color: var(--blanco);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+  .principio-texto strong { display: block; font-size: .97rem; color: var(--azul); margin-bottom: 3px; }
+  .principio-texto p { font-size: .87rem; color: var(--texto-sec); line-height: 1.55; }
+
+  /* ── KAIZEN ── */
+  .kaizen-header { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .kaizen-kana { font-size: 3rem; color: var(--azul); font-family: serif; line-height: 1; }
+  .kaizen-titulo-bloque h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--azul); }
+  .kaizen-titulo-bloque p { font-size: .88rem; color: var(--texto-sec); margin-top: 3px; }
+
+  /* ── SIPOC ── */
+  .sipoc-row {
+    display: flex; gap: 0;
+    border: 1px solid #dde9f7;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .sipoc-col {
+    flex: 1; text-align: center; padding: 20px 10px;
+    border-right: 1px solid #dde9f7;
+    transition: background .3s;
+  }
+  .sipoc-col:last-child { border-right: none; }
+  .sipoc-col:hover { background: #edf3fc; }
+  .sipoc-letra { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900; color: var(--azul); line-height: 1; }
+  .sipoc-ing { font-size: .78rem; color: var(--azul-medio); font-weight: 600; letter-spacing: .07em; margin: 5px 0 3px; }
+  .sipoc-esp { font-size: .82rem; color: var(--texto-sec); }
+
+  /* ── PASOS ── */
+  .pasos-lista { display: flex; flex-direction: column; gap: 2px; }
+  .paso {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 10px 14px; border-radius: 8px; transition: background .2s;
+  }
+  .paso:hover { background: #edf3fc; }
+  .paso-num { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--azul-claro); min-width: 28px; line-height: 1.2; }
+  .paso-contenido strong { font-size: .95rem; color: var(--azul); display: block; margin-bottom: 2px; }
+  .paso-contenido p { font-size: .84rem; color: var(--texto-sec); line-height: 1.45; }
+
+  /* ── COMPARACIÓN ── */
+  .comparacion { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #dde9f7; border-radius: 12px; overflow: hidden; }
+  .comp-header { padding: 14px 20px; font-weight: 600; font-size: .95rem; letter-spacing: .03em; }
+  .comp-header.rojo { background: #fdf0ee; color: #7b2d1a; }
+  .comp-header.verde { background: #e8f5ef; color: #0d5e42; border-left: 1px solid #dde9f7; }
+  .comp-celda { padding: 10px 20px; font-size: .87rem; color: var(--texto-sec); border-top: 1px solid #e8edf7; line-height: 1.45; }
+  .comp-celda.derecha { border-left: 1px solid #e8edf7; }
+  .comp-celda:nth-child(odd) { background: #fdf9f7; }
+  .comp-celda.derecha:nth-child(even) { background: #f5faf7; }
+
+  /* ── TOYOTA ── */
+  #toyota, #toyota-en { background: var(--azul); color: var(--blanco); }
+  #toyota .titulo-slide, #toyota-en .titulo-slide { color: var(--blanco); }
+  #toyota .seccion-label, #toyota-en .seccion-label { color: rgba(255,255,255,.6); }
+  #toyota .linea-azul, #toyota-en .linea-azul { background: var(--oro); }
+  .toyota-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .toyota-card {
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 10px; padding: 18px; transition: background .3s;
+  }
+  .toyota-card:hover { background: rgba(255,255,255,.13); }
+  .toyota-card h4 { color: var(--oro); font-size: .92rem; font-weight: 600; margin-bottom: 7px; }
+  .toyota-card p { font-size: .85rem; color: rgba(255,255,255,.78); line-height: 1.55; }
+  .toyota-resumen {
+    margin-top: 24px; padding: 20px 24px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px; border-left: 4px solid var(--oro);
+  }
+  .toyota-resumen p { font-size: 1rem; color: rgba(255,255,255,.9); line-height: 1.75; }
+  .toyota-resumen strong { color: var(--oro); }
+
+  /* ── CIERRE ── */
+  #cierre { background: var(--gris-suave); text-align: center; align-items: center; }
+  .cierre-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+  .cierre-pill { padding: 10px 22px; border-radius: 50px; font-size: .92rem; font-weight: 600; }
+  .cierre-pill.a { background: var(--azul); color: var(--blanco); }
+  .cierre-pill.b { background: var(--azul-suave); color: var(--azul); }
+  .cierre-pill.c { background: #fef3dc; color: #7a5200; border: 1px solid var(--oro); }
+
+  /* ── CITA ── */
+  .cita {
+    border-left: 4px solid var(--azul-medio);
+    padding: 14px 20px;
+    background: var(--azul-suave);
+    border-radius: 0 8px 8px 0;
+    font-size: .95rem;
+    color: var(--azul);
+    font-style: italic;
+    line-height: 1.65;
+    margin: 20px 0;
+  }
+
+  /* ── GURÚS ── */
+  .gurus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 6px; }
+  .guru-card {
+    background: var(--blanco); border: 1px solid #dde9f7;
+    border-top: 3px solid var(--azul-medio);
+    border-radius: 0 0 10px 10px; padding: 16px;
+  }
+  .guru-nombre { font-weight: 700; font-size: .97rem; color: var(--azul); margin-bottom: 5px; }
+  .guru-def { font-size: .87rem; color: var(--texto-sec); line-height: 1.55; font-style: italic; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .slide { padding: 48px 6vw; }
+    .sipoc-row { flex-direction: column; }
+    .sipoc-col { border-right: none; border-bottom: 1px solid #dde9f7; }
+    .comparacion { grid-template-columns: 1fr; }
+    #nav-dots { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav id="nav-dots" aria-label="Navegación de secciones"></nav>
+
+<button class="nav-arrow" id="btn-prev" aria-label="Anterior">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+</button>
+<div id="slide-counter"></div>
+<button class="nav-arrow" id="btn-next" aria-label="Siguiente">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+</button>
+
+<div id="slider">
+
+<!-- 1. PORTADA -->
+<section class="slide" id="portada">
+  <p class="portada-eyebrow">Instituto Tecnológico de Mexicali · Gestión de Calidad</p>
+  <div class="portada-linea" style="margin:8px auto;"></div>
+  <h1 class="portada-titulo">Calidad <span>Total</span><br>y Círculos de Calidad</h1>
+  <p class="portada-subtitulo">Del concepto artesanal a los sistemas de gestión de clase mundial. Un recorrido por la filosofía que transformó la industria global.</p>
+  <div class="portada-chips">
+    <span class="chip">TQM</span>
+    <span class="chip">Kaizen</span>
+    <span class="chip">PDCA</span>
+    <span class="chip">Círculos de Calidad</span>
+    <span class="chip">Toyota</span>
+  </div>
+</section>
+
+<!-- 2. DEFINICIÓN -->
+<section class="slide slide-blanco" id="definicion">
+  <p class="seccion-label">Fundamento</p>
+  <h2 class="titulo-slide">¿Qué es la calidad?</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">Antes de hablar de sistemas y herramientas, conviene preguntarnos qué entendemos exactamente por "calidad". Los grandes teóricos del siglo XX nos dieron definiciones distintas, pero complementarias.</p>
+  <div class="gurus-grid">
+    <div class="guru-card"><p class="guru-nombre">Walter Shewhart</p><p class="guru-def">"La bondad de un producto."</p></div>
+    <div class="guru-card"><p class="guru-nombre">Joseph M. Juran</p><p class="guru-def">"Adecuado para el uso. La satisfacción del cliente externo e interno."</p></div>
+    <div class="guru-card"><p class="guru-nombre">Philip B. Crosby</p><p class="guru-def">"Ajustarse a las especificaciones."</p></div>
+    <div class="guru-card"><p class="guru-nombre">Douglas Montgomery</p><p class="guru-def">"El grado en que los productos satisfacen las necesidades de quienes los usan."</p></div>
+  </div>
+  <div class="cita">Aunque cada definición tiene su énfasis, todas convergen en un punto: la calidad existe en función del cliente, no del productor.</div>
+</section>
+
+<!-- 3. HISTORICAL EVOLUTION (EN) -->
+<section class="slide slide-gris" id="evolucion-en">
+  <p class="seccion-label" style="display:flex;align-items:center;gap:8px;">History <span style="background:#1a3a6b;color:#fff;font-size:.7rem;padding:2px 10px;border-radius:20px;letter-spacing:.1em;">EN</span></p>
+  <h2 class="titulo-slide">The Evolution of Quality Through Time</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">Quality was not born as a formal concept. It evolved as production methods, competitive pressures, and customer relationships changed throughout history.</p>
+  <div style="overflow-x:auto;">
+    <table class="tabla-evolucion">
+      <thead><tr><th>Era</th><th>Approach</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Craft Era</strong></td><td>Doing things well regardless of cost or effort</td><td>Satisfy the craftsman and the customer</td></tr>
+        <tr><td><strong>Industrial Revolution</strong></td><td>Mass production — quality as a secondary concern</td><td>Meet demand, generate profit</td></tr>
+        <tr><td><strong>World War II</strong></td><td>Weapons effectiveness at any cost</td><td>Ensure availability and speed</td></tr>
+        <tr><td><strong>Post-War Japan</strong></td><td>Doing things right the first time</td><td>Minimize costs, stay competitive</td></tr>
+        <tr><td><strong>Quality Control</strong></td><td>In-process inspection to prevent defects at output</td><td>Meet technical specifications</td></tr>
+        <tr><td><strong>Quality Assurance</strong></td><td>Systems and procedures to prevent defects upstream</td><td>Prevent errors, reduce costs</td></tr>
+        <tr><td><strong>Total Quality</strong></td><td>Permanent satisfaction of customer expectations</td><td>Be highly competitive, continuous improvement</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 4. EVOLUCIÓN (ES) -->
+<section class="slide slide-gris" id="evolucion">
+  <p class="seccion-label">Historia</p>
+  <h2 class="titulo-slide">La evolución de la calidad a través del tiempo</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">La calidad no nació como concepto formal. Fue evolucionando conforme cambiaron las formas de producir, competir y relacionarse con el cliente.</p>
+  <div style="overflow-x:auto;">
+    <table class="tabla-evolucion">
+      <thead><tr><th>Época</th><th>Enfoque</th><th>Finalidad</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Artesanal</strong></td><td>Hacer bien las cosas sin importar costo ni esfuerzo</td><td>Satisfacer al artesano y al cliente</td></tr>
+        <tr><td><strong>Rev. Industrial</strong></td><td>Producción masiva, calidad en segundo plano</td><td>Satisfacer la demanda, obtener beneficios</td></tr>
+        <tr><td><strong>2ª Guerra Mundial</strong></td><td>Eficacia del armamento a cualquier costo</td><td>Garantizar disponibilidad y rapidez</td></tr>
+        <tr><td><strong>Posguerra Japón</strong></td><td>Hacer bien las cosas a la primera</td><td>Minimizar costos, ser competitivo</td></tr>
+        <tr><td><strong>Control de calidad</strong></td><td>Inspección en producción para evitar defectos</td><td>Satisfacer especificaciones técnicas</td></tr>
+        <tr><td><strong>Aseguramiento</strong></td><td>Sistemas y procedimientos para prevenir defectos</td><td>Prevenir errores, reducir costos</td></tr>
+        <tr><td><strong>Calidad Total</strong></td><td>Permanente satisfacción de las expectativas del cliente</td><td>Ser altamente competitivo, mejora continua</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 5. TQM -->
+<section class="slide slide-blanco" id="tqm">
+  <p class="seccion-label">Tema 1</p>
+  <h2 class="titulo-slide">Calidad Total — TQM</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">El <em>Total Quality Management</em> no es un departamento ni un proceso aislado. Es una <strong>filosofía de gestión</strong> que busca la excelencia involucrando a todos los niveles de la organización, de forma permanente.</p>
+  <div class="grid-2">
+    <div class="card card-accent">
+      <div class="card-titulo">¿Qué la hace diferente?</div>
+      <p class="card-texto">La calidad deja de ser responsabilidad de un área específica. Se incorpora en cada actividad, cada decisión y cada interacción con el cliente — interno o externo.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-titulo">La empresa y su entorno</div>
+      <p class="card-texto">La organización responde a la sociedad con empleos, producción y rentabilidad. La calidad total es la forma en que justifica esos compromisos: con <strong>calidad, cantidad y oportunidad</strong> en cada entrega.</p>
+    </div>
+    <div class="card card-oro">
+      <div class="card-titulo">Empresas de Clase Mundial (WCM)</div>
+      <p class="card-texto">La globalización exige certificaciones, benchmarking y normalizaciones. Las empresas que adoptan TQM de verdad aspiran a este estándar: eficientes, confiables y competitivas en cualquier mercado.</p>
+    </div>
+    <div class="card card-oro">
+      <div class="card-titulo">Cliente interno y externo</div>
+      <p class="card-texto">TQM reconoce que el compañero del siguiente proceso también es un cliente. Satisfacer al cliente externo empieza por satisfacer al interno.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6. LOS 5 PADRES -->
+<section class="slide slide-gris" id="padres">
+  <p class="seccion-label">Los referentes</p>
+  <h2 class="titulo-slide">Los 5 grandes padres de la Calidad Total</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">Cinco pensadores del siglo XX construyeron, de forma independiente pero complementaria, los pilares teóricos y prácticos de lo que hoy llamamos TQM.</p>
+  <div class="grid-2">
+    <div class="card"><div class="card-icono">WD</div><div class="card-titulo">W. Edwards Deming</div><p class="card-texto">Padre del Control Estadístico de Calidad (1940). Creador del ciclo PDCA y sus 14 puntos para la gestión. Fue el arquitecto del resurgimiento industrial japonés desde 1947.</p></div>
+    <div class="card"><div class="card-icono">KI</div><div class="card-titulo">Kaoru Ishikawa</div><p class="card-texto">Fundó la JUSE (1949) y creó los Círculos de Calidad. Desarrolló el diagrama causa-efecto y popularizó las 7 herramientas básicas de la calidad.</p></div>
+    <div class="card"><div class="card-icono">JJ</div><div class="card-titulo">Joseph M. Juran</div><p class="card-texto">Desarrolló la Trilogía Juran y aplicó el Principio de Pareto a la calidad. Orientó la calidad hacia la alta dirección e influyó directamente en los SGC e ISO.</p></div>
+    <div class="card"><div class="card-icono">AF</div><div class="card-titulo">Armand V. Feigenbaum</div><p class="card-texto">Fundador formal del TQM. Integró desarrollo, mantenimiento y mejora de calidad en toda la organización. Fue quien abrió General Electric a ingenieros japoneses.</p></div>
+    <div class="card"><div class="card-icono">PC</div><div class="card-titulo">Philip B. Crosby</div><p class="card-texto">El creador de la filosofía "Cero defectos". Su premisa central: hacer bien las cosas desde la primera vez. Lo que cuesta dinero no es la calidad — son las cosas sin calidad.</p></div>
+  </div>
+</section>
+
+<!-- 7. 7 PRINCIPIOS -->
+<section class="slide slide-blanco" id="principios">
+  <p class="seccion-label">Filosofía aplicada</p>
+  <h2 class="titulo-slide">Los 7 principios de la Calidad Total</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">Estos siete principios son la estructura conceptual que sostiene al TQM. No son reglas independientes — se alimentan y refuerzan entre sí.</p>
+  <div>
+    <div class="principio"><div class="num-circulo">1</div><div class="principio-texto"><strong>El cliente es la guía del negocio</strong><p>La permanencia de cualquier organización depende de la satisfacción de sus clientes. Todo parte y termina ahí.</p></div></div>
+    <div class="principio"><div class="num-circulo">2</div><div class="principio-texto"><strong>El cliente también está en casa</strong><p>El cliente interno — el compañero, el siguiente proceso — tiene la misma importancia que el externo.</p></div></div>
+    <div class="principio"><div class="num-circulo">3</div><div class="principio-texto"><strong>Mejora continua de los procesos</strong><p>No basta con cumplir. Hay que mejorar constantemente: hoy mejor que ayer, mañana mejor que hoy.</p></div></div>
+    <div class="principio"><div class="num-circulo">4</div><div class="principio-texto"><strong>El recurso humano es el capital</strong><p>Las personas son el activo más valioso. Sin su compromiso y participación, no hay calidad total posible.</p></div></div>
+    <div class="principio"><div class="num-circulo">5</div><div class="principio-texto"><strong>Los proveedores son parte del sistema</strong><p>La calidad empieza en el insumo. Si el proveedor falla, todo el proceso está en riesgo.</p></div></div>
+    <div class="principio"><div class="num-circulo">6</div><div class="principio-texto"><strong>Hechos, datos y pensamiento estadístico</strong><p>Las decisiones se toman con datos reales, no con opiniones. La medición es la base de la mejora.</p></div></div>
+    <div class="principio"><div class="num-circulo">7</div><div class="principio-texto"><strong>Los gerentes son líderes, modelos y maestros</strong><p>La dirección no solo instruye — demuestra, facilita y enseña con el ejemplo en cada nivel jerárquico.</p></div></div>
+  </div>
+</section>
+
+<!-- 8. KAIZEN Y HANSEI -->
+<section class="slide slide-gris" id="kaizen">
+  <p class="seccion-label">El motor</p>
+  <h2 class="titulo-slide">Kaizen y Hansei</h2>
+  <div class="linea-azul"></div>
+  <div class="kaizen-header">
+    <div class="kaizen-kana">改善</div>
+    <div class="kaizen-titulo-bloque">
+      <h3>Kaizen = cambio para mejorar</h3>
+      <p>Kai (cambio) + Zen (para mejorar). La mejora como hábito diario, no como evento extraordinario.</p>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card card-accent">
+      <div class="card-titulo">Objetivos del Kaizen</div>
+      <p class="card-texto">· 100% participación del personal<br>· 0 inventario en proceso<br>· 0 retrabajo (calidad en la fuente)<br>· 0 puesta a punto innecesaria<br>· 0 paradas no planificadas (TPM)</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-titulo">Herramientas que integra</div>
+      <p class="card-texto">Control Total de Calidad (TQC) · Círculos de calidad · 5S, Kanban, JIT · TPM · Poka Yoke · Cero defectos</p>
+    </div>
+  </div>
+  <div class="card card-oro" style="margin-top:16px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+      <div style="font-size:2rem;font-family:serif;color:var(--azul);">反省</div>
+      <div class="card-titulo" style="margin:0;">Hansei — la actitud que hace posible el Kaizen</div>
+    </div>
+    <p class="card-texto">Hansei (Han = cambio de perspectiva + Sei = autoexamen) se traduce como reflexión honesta. Es el hábito japonés de analizar sinceramente lo que salió mal antes de avanzar. Sin hansei, no hay kaizen genuino — es el elemento cultural que todo lo activa.</p>
+  </div>
+</section>
+
+<!-- 9. CÍRCULOS DE CALIDAD -->
+<section class="slide slide-blanco" id="circulos">
+  <p class="seccion-label">Tema 2</p>
+  <h2 class="titulo-slide">Círculos de Calidad</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">La inteligencia de la organización no vive solo en la dirección. Los círculos de calidad llevan la capacidad de mejora directamente al lugar donde ocurre el trabajo.</p>
+  <div class="grid-2">
+    <div class="card card-accent">
+      <div class="card-titulo">¿Qué son?</div>
+      <p class="card-texto">Grupos pequeños de 6 a 12 personas del mismo nivel o área que se reúnen <strong>voluntariamente</strong> para identificar, analizar y resolver problemas de calidad en su estación de trabajo. No los impone la dirección — nacen del compromiso de los propios trabajadores.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-titulo">La visión ampliada de Juran</div>
+      <p class="card-texto">Juran advirtió que el gran error era encasillar los círculos solo en producción. Su propuesta: deben existir en <em>todas</em> las áreas — contabilidad, ventas, diseño, dirección. Esta visión amplió eventualmente a los SGC e ISO.</p>
+    </div>
+  </div>
+  <div class="cita">"Un círculo de calidad no es solo para la fábrica — también debe existir en contabilidad, ventas, diseño y dirección." — Juran</div>
+  <div style="margin-top:8px;">
+    <p class="card-titulo" style="margin-bottom:10px;color:var(--azul);">Objetivos de los círculos</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">↑ Calidad de productos y servicios</span>
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">↑ Satisfacción del cliente</span>
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">↑ Productividad</span>
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">↑ Utilidad de la empresa</span>
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">Detectar oportunidades de mejora</span>
+      <span style="padding:6px 16px;background:var(--azul-suave);color:var(--azul);border-radius:50px;font-size:.85rem;font-weight:500;">Fortalecer comunicación interna</span>
+    </div>
+  </div>
+</section>
+
+<!-- 10. SIPOC + 7 PASOS -->
+<section class="slide slide-gris" id="sipoc">
+  <p class="seccion-label">Herramientas</p>
+  <h2 class="titulo-slide">SIPOC y los 7 pasos del mejoramiento</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">Antes de mejorar, hay que entender. El modelo SIPOC da el mapa del proceso. Los 7 pasos dan la ruta de acción.</p>
+  <div class="sipoc-row">
+    <div class="sipoc-col"><div class="sipoc-letra">S</div><p class="sipoc-ing">Suppliers</p><p class="sipoc-esp">Proveedores</p></div>
+    <div class="sipoc-col"><div class="sipoc-letra">I</div><p class="sipoc-ing">Inputs</p><p class="sipoc-esp">Entradas</p></div>
+    <div class="sipoc-col"><div class="sipoc-letra">P</div><p class="sipoc-ing">Process</p><p class="sipoc-esp">Proceso</p></div>
+    <div class="sipoc-col"><div class="sipoc-letra">O</div><p class="sipoc-ing">Outputs</p><p class="sipoc-esp">Salidas</p></div>
+    <div class="sipoc-col"><div class="sipoc-letra">C</div><p class="sipoc-ing">Customers</p><p class="sipoc-esp">Clientes</p></div>
+  </div>
+  <div class="pasos-lista" style="margin-top:22px;">
+    <div class="paso"><span class="paso-num">1</span><div class="paso-contenido"><strong>Detección de problemas</strong><p>Diagramas de flujo, Tormenta de Ideas</p></div></div>
+    <div class="paso"><span class="paso-num">2</span><div class="paso-contenido"><strong>Cuantificación del problema</strong><p>Pareto, Histograma, Indicadores, Técnica Grupo Nominal</p></div></div>
+    <div class="paso"><span class="paso-num">3</span><div class="paso-contenido"><strong>Análisis de causas raíz</strong><p>Diagrama Ishikawa, los "5 Por qué", Tormenta de Ideas</p></div></div>
+    <div class="paso"><span class="paso-num">4</span><div class="paso-contenido"><strong>Metas de mejoramiento</strong><p>Definir nivel de desempeño exigido: estrategias, objetivos, mediciones</p></div></div>
+    <div class="paso"><span class="paso-num">5</span><div class="paso-contenido"><strong>Definición y selección de soluciones</strong><p>Técnica del Grupo Nominal, Matriz de Jerarquización</p></div></div>
+    <div class="paso"><span class="paso-num">6</span><div class="paso-contenido"><strong>Implantación del plan de acciones</strong><p>Diagrama de Gantt, Lista de chequeo, seguimiento al programa</p></div></div>
+    <div class="paso"><span class="paso-num">7</span><div class="paso-contenido"><strong>Evaluación de resultados y garantía</strong><p>Difusión de logros, Documentación, Auditorías de calidad</p></div></div>
+  </div>
+</section>
+
+<!-- 11. CAMBIO DE PARADIGMA -->
+<section class="slide slide-blanco" id="comparacion">
+  <p class="seccion-label">El gran giro</p>
+  <h2 class="titulo-slide">El cambio de paradigma</h2>
+  <div class="linea-azul"></div>
+  <p class="subtitulo-slide">La diferencia entre el enfoque tradicional y el TQM no es técnica — es filosófica. Cambia la pregunta central, la forma de ver a las personas y la manera de resolver problemas.</p>
+  <div class="comparacion">
+    <div class="comp-header rojo">Enfoque tradicional (organización)</div>
+    <div class="comp-header verde">Enfoque TQM (procesos)</div>
+    <div class="comp-celda">Los empleados son el problema</div>
+    <div class="comp-celda derecha">El proceso es el problema</div>
+    <div class="comp-celda">Evaluar a los individuos · cambiar a la persona</div>
+    <div class="comp-celda derecha">Evaluar el proceso · cambiar el proceso</div>
+    <div class="comp-celda">Controlar a los empleados · no confiar en nadie</div>
+    <div class="comp-celda derecha">Desarrollo de personas · todos estamos en esto juntos</div>
+    <div class="comp-celda">¿Quién cometió el error?</div>
+    <div class="comp-celda derecha">¿Qué permitió que el error ocurriera?</div>
+    <div class="comp-celda">Motivar y controlar externamente</div>
+    <div class="comp-celda derecha">Eliminar barreras · reducir la variación</div>
+  </div>
+</section>
+
+<!-- 12. TOYOTA (EN) -->
+<section class="slide" id="toyota-en">
+  <p class="seccion-label" style="display:flex;align-items:center;gap:8px;">Real Case <span style="background:var(--oro);color:#fff;font-size:.7rem;padding:2px 10px;border-radius:20px;letter-spacing:.1em;">EN</span></p>
+  <h2 class="titulo-slide">Toyota — Where It All Comes Together</h2>
+  <div class="linea-azul"></div>
+  <p style="font-size:1rem;color:rgba(255,255,255,.8);max-width:680px;line-height:1.75;margin-bottom:24px;">Toyota is the company where TQM, Quality Circles, Kaizen, Hansei, and PDCA are not separate concepts — they are part of a single living system. Everything covered in this presentation coexists and operates simultaneously there.</p>
+  <div class="toyota-grid">
+    <div class="toyota-card"><h4>The Real Problem (1970s)</h4><p>Toyota faced serious quality challenges in its production lines. The solution was not to hire more inspectors — it was to <strong>empower workers</strong> through quality circles in every area.</p></div>
+    <div class="toyota-card"><h4>The Outcome</h4><p>Reduced waste, increased efficiency, and the birth of the <strong>Toyota Production System (TPS)</strong> — today the global benchmark for world-class manufacturing.</p></div>
+    <div class="toyota-card"><h4>The Andon System</h4><p>Any worker can <strong>stop the production line</strong> upon detecting a defect. Quality is not waiting for the inspector — it is detected by those who know the process best.</p></div>
+    <div class="toyota-card"><h4>Certifications</h4><p>ISO 9001, IATF 16949, cross-plant audits, and ongoing supplier evaluation (SQAM). TQM became a formal, auditable system.</p></div>
+  </div>
+  <div class="toyota-resumen">
+    <p><strong>Total Quality</strong> is the philosophy. <strong>Quality Circles</strong> are the human mechanism that brings it to the shop floor. <strong>Kaizen</strong> is the daily habit that sustains it. <strong>Hansei</strong> is the cultural attitude that makes it possible. And <strong>Toyota</strong> is the proof that all of this works in real life.</p>
+  </div>
+</section>
+
+<!-- 13. TOYOTA (ES) -->
+<section class="slide" id="toyota">
+  <p class="seccion-label">Caso real</p>
+  <h2 class="titulo-slide">Toyota — donde todo converge</h2>
+  <div class="linea-azul"></div>
+  <p style="font-size:1rem;color:rgba(255,255,255,.8);max-width:680px;line-height:1.75;margin-bottom:24px;">Toyota es la empresa donde TQM, Círculos de Calidad, Kaizen, Hansei y PDCA no son conceptos separados — son parte de un mismo sistema vivo. Todo lo estudiado en esta presentación coexiste y opera simultáneamente ahí.</p>
+  <div class="toyota-grid">
+    <div class="toyota-card"><h4>El problema real (años 70)</h4><p>Toyota enfrentaba serios retos de calidad en su producción. La solución no fue contratar más inspectores — fue empoderar a sus propios trabajadores a través de círculos de calidad en cada área.</p></div>
+    <div class="toyota-card"><h4>El resultado</h4><p>Reducción de desperdicios, aumento de eficiencia y el nacimiento del <strong>Toyota Production System (TPS)</strong> — hoy el estándar de manufactura de clase mundial.</p></div>
+    <div class="toyota-card"><h4>Sistema Andon</h4><p>Cualquier trabajador puede detener la línea de producción al detectar un defecto. La calidad no espera al inspector — la detecta quien mejor conoce el proceso.</p></div>
+    <div class="toyota-card"><h4>Certificaciones</h4><p>ISO 9001, IATF 16949, auditorías cruzadas entre plantas y evaluación constante de proveedores (SQAM). El TQM se volvió sistema formal y auditable.</p></div>
+  </div>
+  <div class="toyota-resumen">
+    <p>La <strong>Calidad Total</strong> es la filosofía. Los <strong>Círculos de Calidad</strong> son el mecanismo humano que la baja al piso de trabajo. El <strong>Kaizen</strong> es el hábito que la sostiene día a día. El <strong>Hansei</strong> es la actitud cultural que la hace posible. Y <strong>Toyota</strong> es la prueba de que todo esto funciona en la vida real.</p>
+  </div>
+</section>
+
+<!-- 14. CIERRE -->
+<section class="slide" id="cierre">
+  <p class="seccion-label">Conclusión</p>
+  <h2 class="titulo-slide" style="color:var(--azul);">Calidad total no es un departamento.<br>Es una forma de pensar.</h2>
+  <div class="linea-azul" style="margin:14px auto 20px;"></div>
+  <p class="subtitulo-slide" style="text-align:center;margin:0 auto 28px;">Del artesano que quería hacer las cosas bien, a la empresa que lo convierte en sistema: la calidad ha sido siempre la misma búsqueda — satisfacer al cliente de forma consistente y mejorar sin parar.</p>
+  <div class="cierre-grid">
+    <span class="cierre-pill a">TQM — Filosofía total</span>
+    <span class="cierre-pill b">Círculos — Participación desde la base</span>
+    <span class="cierre-pill c">Kaizen — Mejora continua</span>
+    <span class="cierre-pill b">SIPOC — Entender el proceso</span>
+    <span class="cierre-pill a">Toyota — El modelo vivo</span>
+    <span class="cierre-pill c">Hansei — Reflexión honesta</span>
+  </div>
+  <p style="margin-top:40px;font-size:.88rem;color:var(--texto-sec);text-align:center;letter-spacing:.05em;">Instituto Tecnológico de Mexicali · Gestión de Calidad</p>
+</section>
+
+</div><!-- #slider -->
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+  let transitioning = false;
+
+  // Build nav dots
+  const navDots = document.getElementById('nav-dots');
+  slides.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.title = s.querySelector('h1,h2')?.textContent?.trim().slice(0,30) || '';
+    d.addEventListener('click', () => goTo(i));
+    navDots.appendChild(d);
+  });
+
+  function goTo(idx) {
+    if (idx === current || transitioning || idx < 0 || idx >= total) return;
+    transitioning = true;
+
+    slides[current].classList.remove('active');
+    slides[current].scrollTop = 0;
+    current = idx;
+    slides[current].classList.add('active');
+
+    // update dots
+    navDots.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+
+    // progress bar
+    document.getElementById('progress-bar').style.width = ((current / (total - 1)) * 100) + '%';
+
+    // counter
+    document.getElementById('slide-counter').textContent = (current + 1) + ' / ' + total;
+
+    setTimeout(() => { transitioning = false; }, 650);
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  document.getElementById('btn-next').addEventListener('click', next);
+  document.getElementById('btn-prev').addEventListener('click', prev);
+
+  // Keyboard: arrows, PageDown/Up, space
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); prev(); }
+  });
+
+  // Touch swipe
+  let touchStartX = 0, touchStartY = 0;
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < Math.abs(dy)) return; // vertical swipe = scroll inside slide
+    if (dx < -50) next();
+    if (dx > 50) prev();
+  });
+
+  // Init first slide
+  slides[0].classList.add('active');
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('slide-counter').textContent = '1 / ' + total;
+</script>
+</body>
+</html>
